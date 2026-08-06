@@ -1,0 +1,381 @@
+<?php
+
+namespace App\Http\Controllers;
+use Excel;
+use Illuminate\Http\Request;
+use App\Models\Product;
+use App\Models\Location;
+use App\Models\Productstock;
+use App\Models\Producthistory;
+use App\Models\Brand;
+use App\Models\Enquiry;
+use App\Models\Enquiryline;
+use App\Models\Enquirycart;
+use App\Models\Stage;
+use App\Models\Vendor;
+use App\Models\Enquirystagelog;
+use App\Models\Invoice;
+use App\Models\Invoiceline;
+use App\Models\Invoicelog;
+use App\Models\Invoicestatus;
+use App\Models\Sale;
+use App\Models\Saleline;
+use App\Models\Orderstatuslog;
+use App\Models\Store;
+use App\Models\User;
+use App\Models\Quote;
+use App\Models\Quoteline;
+use App\Models\Po;
+use App\Models\Poline;
+use App\Models\Currency;
+use App\Models\Postatus;
+use App\Models\Pogrnlog;
+use App\Models\Company;
+use App\Models\Branch;
+
+use Auth;
+use DB;
+
+class PoController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth'); 
+    }
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create(Request $request)
+    {
+       // print_r($request->all()); exit();
+        $vendors=Vendor::where('delete_status','0')->orderBy('name','Asc')->get();
+        $companies = Company::where('delete_status','0')->orderBy('id','Desc')->get();
+        $branches = Branch::where('delete_status','0')->orderBy('id','Desc')->get();
+        return view('po.create',compact('vendors','companies','branches'));
+    }
+
+    public function store(Request $request){
+        header('Content-Type: text/html; charset=utf-8');
+        $path = $request->file('import_file');
+        $data = Excel::toArray([], $path);
+        $data = $data[0];
+        unset($data[0]);
+
+
+        if (count($data) == 0) {
+            return back()->with('error', 'Uploaded file is empty.');
+        }
+
+        // ✅ STEP 1: Collect all product names from Excel
+        $excelProducts = collect($data)
+            ->map(fn($row) => trim($row[0])) // column 0 = product name
+            ->filter()
+            ->values();
+
+        // ✅ STEP 2: Check for duplicates within the Excel file itself
+        $duplicates = $excelProducts->duplicates();
+
+        if ($duplicates->isNotEmpty()) {
+            return back()->with(
+                'error',
+                'Duplicate products found in Excel: ' . $duplicates->unique()->implode(', ')
+            );
+        }
+
+        // ✅ STEP 3: Check product existence in DB
+        $uniqueProducts = $excelProducts->unique()->toArray();
+        $existingProducts = Product::whereIn('name', $uniqueProducts)->pluck('name')->toArray();
+        $missingProducts = array_diff($uniqueProducts, $existingProducts);
+
+        if (count($missingProducts) > 0) {
+            return back()->with(
+                'error',
+                'The following products are not found in the system: ' . implode(', ', $missingProducts)
+            );
+        }
+
+        // Validate Qty and Vendor Price (must be numeric and greater than 0)
+        $invalidRows = [];
+        foreach ($data as $index => $row) {
+            $rowNum = $index + 2; // Excel rows start at 1, and row 1 is header
+            $qty = $row[2] ?? null;
+            $price = $row[3] ?? null;
+
+            if (!is_numeric($qty) || !is_numeric($price) || $qty <= 0 || $price <= 0) {
+                $invalidRows[] = "Row $rowNum (Qty: {$qty}, Price: {$price})";
+            }
+        }
+
+        if (count($invalidRows) > 0) {
+            return back()->with('error', 'Invalid Qty or Price in: ' . implode(', ', $invalidRows));
+        }
+
+        $vendor_count = Vendor::where('id', $request->vendor_id)->count();
+        if ($vendor_count == 0) {
+            return back()->with('error', 'Vendor Filed was Required');
+        }
+
+        $po_count= DB::table('pos')->whereYear('po_date', date('Y'))->count();
+        $po_count=$po_count+1;
+
+        $code='PO'.date('y').'-'.str_pad($po_count, 5, '0', STR_PAD_LEFT);
+        $po_id=Po::insertGetId(['vendor_id'=>$request->vendor_id,'branch_id'=>$request->branch_id,'company_id'=>$request->company_id,'customer'=>$request->customer,'priority'=>$request->priority,'po_date'=>$request->po_date,'note'=>$request->note,'created_by'=>Auth::user()->id,'created_at'=>date('Y-m-d H:i:s'),'po_no'=>$code,'vendor_invoice_no'=>$request->vendor_invoice_no]);
+
+        
+        $x=0;
+        $chunks=array_chunk($data, 10000);
+        if(count($chunks) > 0){
+            foreach ($chunks as $key => $data) {
+
+                if(count($data) > 0){
+                    foreach ($data as $key => $value) {
+                        $product = Product::where('name', $value[0])->first();
+                        $total_price= $value[3]*$value[2];
+                        $data = new Poline; 
+                        $data->po_id = $po_id;
+                        $data->product_id = $product->id;
+                        $data->description = $value[1];
+                        $data->quantity = $value[2];
+                        $data->balance_quantity = $value[2];
+                        $data->price = $value[3];
+                        $data->total_price = $total_price;
+                        $data->created_by = Auth::user()->id;
+                        $data->save(); 
+                    } 
+                }
+            }
+        }
+
+        Pogrnlog::insert([
+            'po_id' => $po_id,
+            'grn_id' => 0,
+            'note' => "PO Created",
+            'created_by' => Auth::user()->id,
+            'created_at' => now()
+        ]);
+
+        return redirect('view/po/' . $po_id)->with('success', 'PO created successfully!');    
+    }
+
+    public function index(Request $request)
+    {
+        $title = "PO";
+        $fromdate = date('Y-m-01');
+        $todate = date('Y-m-d');
+        if (!empty($request->fromdate) && !empty($request->todate)){
+            $fromdate = $request->fromdate;
+            $todate = $request->todate;
+        }
+        //print_r($fromdate);exit();
+        $todate1 = date('Y-m-d', strtotime("+1 day", strtotime($todate)));
+        $vendors = Vendor::where('delete_status','0')->orderBy('name','asc')->get();
+        $status = Postatus::get();
+        $currencies = Currency::where('delete_status','0')->orderBy('name','asc')->get();
+        $companies = Company::where('delete_status','0')->orderBy('id','Desc')->get();
+        $branches = Branch::where('delete_status','0')->orderBy('id','Desc')->get();
+
+
+        $indexes = Po::whereBetween('po_date',[$fromdate, $todate]);
+
+        $company_id='';
+        if(!empty($request->company_id)){
+            $company_id=$request->company_id;
+            $indexes=$indexes->where('company_id',$company_id);
+        }
+
+        $branch_id='';
+        if(!empty($request->branch_id)){
+            $branch_id=$request->branch_id;
+            $indexes=$indexes->where('branch_id',$branch_id);
+        }
+
+        $vendor_id='';
+        if(!empty($request->vendor_id)){
+            $vendor_id=$request->vendor_id;
+            $indexes=$indexes->where('vendor_id',$vendor_id);
+        }
+
+        $status_id='';
+        if(!empty($request->status_id)){
+            $status_id=$request->status_id;
+            $indexes=$indexes->where('postatus_id',$status_id);
+        }
+
+        $priority='';
+        if(!empty($request->priority)){
+            $priority=$request->priority;
+            $indexes=$indexes->where('priority',$priority);
+        }
+        $currency_id='';
+        if (!empty($request->currency_id)) {
+            $currency_id = $request->currency_id;
+
+            $indexes = $indexes->whereHas('vendor', function($q) use ($currency_id) {
+                $q->where('currency_id', $currency_id);
+            });
+        }
+
+
+        $indexes=$indexes->where('delete_status','0')->orderBy('id','Desc')->get();
+
+        return view('po.index',compact('title','indexes','fromdate','todate','vendors','vendor_id','status_id','priority','status','currencies','currency_id','companies','branches','company_id','branch_id'));  
+    }
+
+    public function view($id)
+    {
+        
+        $po = Po::where('id',$id)->first();
+        $title=$po->po_no.'-'.$po->po_date;
+        return view('po.view',compact('po','title'));
+    }
+
+    public function edit($id)
+    {
+        $title="Edit Po";
+        $po = Po::where('id',$id)->first();
+
+        $vendors=Vendor::where('delete_status','0')->orderBy('name','Asc')->get();
+        $companies = Company::where('delete_status','0')->orderBy('id','Desc')->get();
+        $branches = Branch::where('delete_status','0')->orderBy('id','Desc')->get();
+        return view('po.edit',compact('po','title','vendors','companies','branches'));
+    }
+
+    public function update2(Request $request)
+    {
+        Po::where('id',$request->edit_id)->update(['vendor_id'=>$request->vendor_id,'po_date'=>$request->po_date,'customer'=>$request->customer,'priority'=>$request->priority,'note'=>$request->note,'updated_by'=>Auth::user()->id,'updated_at'=>date('Y-m-d H:i:s')]);
+
+        return redirect('view/po/'.$request->edit_id);
+    }
+
+    public function update(Request $request){
+        header('Content-Type: text/html; charset=utf-8');
+        $path = $request->file('import_file');
+        $data = Excel::toArray([], $path);
+        $data = $data[0];
+        unset($data[0]);
+
+
+        if (count($data) == 0) {
+            return back()->with('error', 'Uploaded file is empty.');
+        }
+
+        // ✅ STEP 1: Collect all product names from Excel
+        $excelProducts = collect($data)
+            ->map(fn($row) => trim($row[0])) // column 0 = product name
+            ->filter()
+            ->values();
+
+        // ✅ STEP 2: Check for duplicates within the Excel file itself
+        $duplicates = $excelProducts->duplicates();
+
+        if ($duplicates->isNotEmpty()) {
+            return back()->with(
+                'error',
+                'Duplicate products found in Excel: ' . $duplicates->unique()->implode(', ')
+            );
+        }
+
+        // ✅ STEP 3: Check product existence in DB
+        $uniqueProducts = $excelProducts->unique()->toArray();
+        $existingProducts = Product::whereIn('name', $uniqueProducts)->pluck('name')->toArray();
+        $missingProducts = array_diff($uniqueProducts, $existingProducts);
+
+        if (count($missingProducts) > 0) {
+            return back()->with(
+                'error',
+                'The following products are not found in the system: ' . implode(', ', $missingProducts)
+            );
+        }
+
+        // Validate Qty and Vendor Price (must be numeric and greater than 0)
+        $invalidRows = [];
+        foreach ($data as $index => $row) {
+            $rowNum = $index + 2; // Excel rows start at 1, and row 1 is header
+            $qty = $row[2] ?? null;
+            $price = $row[3] ?? null;
+
+            if (!is_numeric($qty) || !is_numeric($price) || $qty <= 0 || $price <= 0) {
+                $invalidRows[] = "Row $rowNum (Qty: {$qty}, Price: {$price})";
+            }
+        }
+
+        if (count($invalidRows) > 0) {
+            return back()->with('error', 'Invalid Qty or Price in: ' . implode(', ', $invalidRows));
+        }
+
+        $vendor_count = Vendor::where('id', $request->vendor_id)->count();
+        if ($vendor_count == 0) {
+            return back()->with('error', 'Vendor Filed was Required');
+        }
+
+        $po_count= DB::table('pos')->whereYear('po_date', date('Y'))->count();
+        $po_count=$po_count+1;
+
+        $code='PO'.date('y').'-'.str_pad($po_count, 5, '0', STR_PAD_LEFT);
+        Po::where('id',$request->edit_id)->update(['vendor_id'=>$request->vendor_id,'po_date'=>$request->po_date,'customer'=>$request->customer,'priority'=>$request->priority,'note'=>$request->note,'updated_by'=>Auth::user()->id,'updated_at'=>date('Y-m-d H:i:s'),'branch_id'=>$request->branch_id,'company_id'=>$request->company_id,'vendor_invoice_no'=>$request->vendor_invoice_no]);
+        
+        $x=0;
+        Poline::where('po_id',$request->edit_id)->delete();
+        $chunks=array_chunk($data, 10000);
+        if(count($chunks) > 0){
+            foreach ($chunks as $key => $data) {
+
+                if(count($data) > 0){
+                    foreach ($data as $key => $value) {
+                        $product = Product::where('name', $value[0])->first();
+                        $total_price= $value[3]*$value[2];
+                        $data = new Poline; 
+                        $data->po_id = $request->edit_id;
+                        $data->product_id = $product->id;
+                        $data->description = $value[1];
+                        $data->quantity = $value[2];
+                        $data->balance_quantity = $value[2];
+                        $data->price = $value[3];
+                        $data->total_price = $total_price;
+                        $data->created_by = Auth::user()->id;
+                        $data->save(); 
+                    } 
+                }
+            }
+        }
+
+        Pogrnlog::insert([
+            'po_id' => $request->edit_id,
+            'grn_id' => 0,
+            'note' => "PO Updated",
+            'created_by' => Auth::user()->id,
+            'created_at' => now()
+        ]);
+
+        return redirect('view/po/' . $request->edit_id)->with('success', 'PO updated successfully!');    
+    }
+
+    public function delete($id='')
+    {
+      Po::where('id',$id)->update(['delete_status'=>'1','updated_by'=>Auth::user()->id]);
+
+      Poline::where('po_id',$id)->update(['delete_status'=>'1']);
+
+      Pogrnlog::insert([
+            'po_id' => $id,
+            'grn_id' => 0,
+            'note' => "PO Deleted",
+            'created_by' => Auth::user()->id,
+            'created_at' => now()
+        ]);
+      return redirect()->back();
+    }
+
+    public function printpo($id='')
+    {
+        $index = Po::where('id',$id)->first();
+        $title=$index->po_no;
+        return view('po.print',compact('index','title'));
+    }
+    
+
+    
+
+}
