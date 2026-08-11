@@ -52,3 +52,8 @@ Thumbs.db
 /netcodxb/public/assets/js/pages/leaflet-map.init.js
 /netcokwt/public/assets/js/pages/leaflet-map.init.js
 /netcopo/public/assets/js/pages/leaflet-map.init.js
+
+# Local file backups
+*.bak
+*.bak_*
+*.orig

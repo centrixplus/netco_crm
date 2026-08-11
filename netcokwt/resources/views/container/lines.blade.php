@@ -105,16 +105,29 @@
                     <td class="received-cell">
                         <span class="received-val">{{$line->received_qty}}</span>
                         <span class="over-badge">@if($line->received_qty > $line->quantity)<span class="badge bg-danger">over</span>@endif</span>
+                        <button type="button" id="recvplus{{$line->id}}"
+                                class="btn btn-sm recv-plus {{$balance < 0 ? 'btn-danger' : ($balance > 0 ? 'btn-primary' : 'btn-success')}}"
+                                data-line-id="{{$line->id}}"
+                                data-container="{{$container->container_no}}"
+                                data-box="{{$line->box_no}}"
+                                data-part="{{$line->part_no}}"
+                                data-qty="{{$line->quantity}}"
+                                data-brand="{{$line->brand}}"
+                                data-location="{{$line->location}}"
+                                title="Add / view received">
+                            <i class="mdi mdi-plus"></i>
+                        </button>
                     </td>
                     <td class="balance-cell">{{$balance}}</td>
                     <td>{{$line->crm_qty}}</td>
                     <td>{{$line->brand}}</td>
-                    <td>{{$line->location}}</td>
+                    <td><strong>{{$line->location}}</strong></td>
                 </tr>
                 <tr class="collapse" id="logs{{$line->id}}">
                     <td colspan="10" class="bg-light">
                         <strong class="text-secondary">Previous Received Entries — {{$line->part_no}}</strong>
-                        <table class="table table-sm table-bordered mb-0 mt-2 bg-white">
+                        <span class="d-none" id="entriesanchor{{$line->id}}"></span>
+                        <table class="table table-sm table-bordered mb-0 mt-2 bg-white" id="entriestbl{{$line->id}}">
                             <thead>
                                 <tr>
                                     <th>#</th><th>Received Qty</th><th>Source</th><th>Note</th><th>Remarks</th>
@@ -175,7 +188,7 @@
                     <td>{{$ex->description}}</td>
                     <td>{{$ex->received_qty}}</td>
                     <td>{{$ex->brand}}</td>
-                    <td>{{$ex->location}}</td>
+                    <td><strong>{{$ex->location}}</strong></td>
                     <td>{{$ex->source}}</td>
                     <td>{{$ex->note}}</td>
                 </tr>
@@ -201,6 +214,61 @@
     </div></div>
 </div>
 </div>
+
+<!-- Received-entry popup (reuses the same store/update/delete endpoints) -->
+<div class="modal fade" id="receivedModal" tabindex="-1" aria-labelledby="receivedModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="receivedModalLabel">Received — Add / Entries</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Top summary: Selected Container / Box / Part No / Quantity / Received / Balance -->
+        <div class="row g-2 mb-3 border-bottom pb-3">
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Container</div><p class="info-value mb-0" id="mdContainer">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Box</div><p class="info-value mb-0" id="mdBox">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Part No</div><p class="info-value mb-0" id="mdPart">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Quantity</div><p class="info-value mb-0" id="mdQty">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Received</div><p class="info-value mb-0" id="mdReceived">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Balance</div><p class="info-value mb-0" id="mdBalance">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Brand</div><p class="info-value mb-0" id="mdBrand">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Location</div><p class="info-value mb-0" id="mdLocation">-</p></div>
+        </div>
+
+        <!-- Add received (one row, labelled, * = mandatory) -->
+        <form action="{{route('containerreceiptstore')}}" method="post" class="receiptForm border rounded p-3 mb-3 bg-light" id="modalReceiptForm" data-line-id="">
+            {{csrf_field()}}
+            <input type="hidden" name="container_line_id" value="">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Qty <span class="text-danger">*</span></label>
+                    <input type="number" step="1" min="1" name="received_qty" class="form-control qty-input" placeholder="Qty" onkeypress="return event.charCode>=48 && event.charCode<=57" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label mb-1">Note</label>
+                    <input type="text" name="note" class="form-control" placeholder="Note">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Remarks</label>
+                    <input type="text" name="remarks" class="form-control" placeholder="Remarks">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">Submit</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Previous entries for this line (relocated here on open; edit / remove work as-is) -->
+        <h6 class="text-secondary mb-2">Previous Received Entries</h6>
+        <div id="modalEntriesSlot" class="table-responsive"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
 @section('ScriptContent')
 <script>
@@ -221,6 +289,7 @@ function showToast(message, type){
 }
 
 var CSRF = "{{csrf_token()}}";
+var mdCurrentLine = null;   // line whose entries table is currently inside the modal
 
 function parseErr(xhr){
     var msg = 'Action failed.';
@@ -243,6 +312,15 @@ function updateLineCells(lineId, res){
         $row.find('.over-badge').html('');
     }
     $('#logstotal'+lineId).text(res.received_qty);
+    // recolor the "+" button: red = over, blue = pending, green = complete
+    var bal = parseFloat(res.balance);
+    $('#recvplus'+lineId).removeClass('btn-danger btn-primary btn-success')
+        .addClass(bal < 0 ? 'btn-danger' : (bal > 0 ? 'btn-primary' : 'btn-success'));
+    // keep the modal summary in sync when it is open for this line
+    if(mdCurrentLine === lineId){
+        $('#mdReceived').text(res.received_qty);
+        $('#mdBalance').text(res.balance);
+    }
 }
 
 // Build a history row for an entry returned by the server.
@@ -360,6 +438,46 @@ $('#partSearch').on('keyup', function(){
         var detail = $(this).next('tr.collapse');
         if(detail.length){ detail.toggle(match && detail.hasClass('show')); }
     });
+});
+
+// --- Received "+" button: open popup, fill summary, relocate entries ---
+var receivedModal = new bootstrap.Modal(document.getElementById('receivedModal'));
+$(document).on('click', '.recv-plus', function(){
+    var $btn   = $(this);
+    var lineId = $btn.data('line-id');
+    var $row   = $('#row'+lineId);
+    mdCurrentLine = lineId;
+
+    // top summary (Received/Balance read live from the row)
+    $('#mdContainer').text('#' + $btn.data('container'));
+    $('#mdBox').text($btn.data('box'));
+    $('#mdPart').text($btn.data('part'));
+    $('#mdQty').text($btn.data('qty'));
+    $('#mdReceived').text($row.find('.received-val').text());
+    $('#mdBalance').text($row.find('.balance-cell').text());
+    $('#mdBrand').text($btn.data('brand'));
+    $('#mdLocation').text($btn.data('location'));
+
+    // point the modal add-form at this line and clear it
+    var $mf = $('#modalReceiptForm');
+    $mf.attr('data-line-id', lineId).data('line-id', lineId);
+    $mf.find('input[name=container_line_id]').val(lineId);
+    $mf.find('.qty-input').val('');
+    $mf.find('input[name=note], input[name=remarks]').val('');
+
+    // move this line's real entries table into the modal (edit/remove keep working)
+    $('#modalEntriesSlot').append($('#entriestbl'+lineId));
+
+    receivedModal.show();
+});
+
+// on close, move the entries table back to its original place
+$('#receivedModal').on('hidden.bs.modal', function(){
+    if(mdCurrentLine !== null){
+        var $tbl = $('#entriestbl'+mdCurrentLine);
+        if($tbl.length){ $('#entriesanchor'+mdCurrentLine).after($tbl); }
+        mdCurrentLine = null;
+    }
 });
 </script>
 @stop
