@@ -7,6 +7,9 @@
 .info-card .info-value{font-size:14px;font-weight:600;color:#495057;margin:0;}
 .line-scroll{max-height:600px;overflow-y:auto;}
 .line-scroll > table > thead > tr > th{position:sticky;top:0;z-index:3;background:#eef2f7;}
+#receivedModal .info-item{padding:.35rem 0;}
+#receivedModal .info-label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a0a6b1;margin-bottom:3px;font-weight:500;}
+#receivedModal .info-value{font-size:16px;font-weight:700;color:#2c3e50;margin:0;}
 </style>
 <div class="row">
 <div class="col-12">
@@ -229,10 +232,10 @@
             <div class="col-md-3 col-6 info-item"><div class="info-label">Container</div><p class="info-value mb-0" id="mdContainer">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Box</div><p class="info-value mb-0" id="mdBox">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Part No</div><p class="info-value mb-0" id="mdPart">-</p></div>
+            <div class="col-md-3 col-6 info-item"><div class="info-label">Brand</div><p class="info-value mb-0" id="mdBrand">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Quantity</div><p class="info-value mb-0" id="mdQty">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Received</div><p class="info-value mb-0" id="mdReceived">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Balance</div><p class="info-value mb-0" id="mdBalance">-</p></div>
-            <div class="col-md-3 col-6 info-item"><div class="info-label">Brand</div><p class="info-value mb-0" id="mdBrand">-</p></div>
             <div class="col-md-3 col-6 info-item"><div class="info-label">Location</div><p class="info-value mb-0" id="mdLocation">-</p></div>
         </div>
 
