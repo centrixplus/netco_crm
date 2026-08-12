@@ -7,6 +7,7 @@
 .info-card .info-value{font-size:14px;font-weight:600;color:#495057;margin:0;}
 .box-scroll{max-height:600px;overflow-y:auto;}
 .box-scroll table thead th{position:sticky;top:0;z-index:2;background:#eef2f7;}
+.table-bordered th, .table-bordered td{border:1px solid #6c757d !important;}
 </style>
 <div class="row">
 <div class="col-12">

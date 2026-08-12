@@ -5,6 +5,9 @@
 <link href="{{asset('/assets')}}/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
 <link href="{{asset('/assets')}}/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
 <link href="{{asset('/assets')}}/libs/select2/css/select2.min.css" rel="stylesheet" type="text/css" />
+<style>
+#datatable-buttons th, #datatable-buttons td{border:1px solid #6c757d !important;}
+</style>
 @endsection
 @section('PageContent')
 <div class="row">
@@ -121,7 +124,9 @@
                         <td>
                             <a href="{{url('/container')}}/{{$index->id}}/cartons" class="btn btn-outline-primary waves-effect waves-light btn-sm font-size-18"><i class="mdi mdi-eye"></i></a>
                             <a href="{{url('/container')}}/{{$index->id}}/edit" class="btn btn-outline-secondary waves-effect waves-light btn-sm font-size-18"><i class="mdi mdi-pencil"></i></a>
+                            @if(auth()->user()->role == 'admin')
                             <a onclick="return confirm('Are you sure?')" href="{{url('/container')}}/{{$index->id}}/delete" class="btn btn-outline-danger waves-effect waves-light btn-sm font-size-18"><i class="mdi mdi-trash-can-outline"></i></a>
+                            @endif
                         </td>
                     </tr>
                     @endforeach

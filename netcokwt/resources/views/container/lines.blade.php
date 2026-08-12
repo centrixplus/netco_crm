@@ -10,6 +10,9 @@
 #receivedModal .info-item{padding:.35rem 0;}
 #receivedModal .info-label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a0a6b1;margin-bottom:3px;font-weight:500;}
 #receivedModal .info-value{font-size:16px;font-weight:700;color:#2c3e50;margin:0;}
+#lineTable{--bs-table-border-color:#6c757d;}
+#lineTable th, #lineTable td, #extraTable th, #extraTable td{border:1px solid #6c757d !important;}
+.cell-strong{font-weight:700 !important;color:#212529 !important;}
 </style>
 <div class="row">
 <div class="col-12">
@@ -89,9 +92,9 @@
                 <?php $balance = $line->quantity - $line->received_qty; ?>
                 <tr class="line-row {{$line->received_qty > $line->quantity ? 'table-danger' : ''}}" id="row{{$line->id}}">
                     <td>{{$line->box_no}}</td>
-                    <td class="part-cell">{{$line->part_no}}</td>
+                    <td class="part-cell cell-strong">{{$line->part_no}}</td>
                     <td>{{$line->description}}</td>
-                    <td>{{$line->quantity}}</td>
+                    <td class="cell-strong">{{$line->quantity}}</td>
                     <td>
                         <form action="{{route('containerreceiptstore')}}" method="post" class="receiptForm" data-line-id="{{$line->id}}" data-qty="{{$line->quantity}}" style="min-width:160px">
                             {{csrf_field()}}
@@ -106,7 +109,7 @@
                         </button>
                     </td>
                     <td class="received-cell">
-                        <span class="received-val">{{$line->received_qty}}</span>
+                        <span class="received-val cell-strong">{{$line->received_qty}}</span>
                         <span class="over-badge">@if($line->received_qty > $line->quantity)<span class="badge bg-danger">over</span>@endif</span>
                         <button type="button" id="recvplus{{$line->id}}"
                                 class="btn btn-sm recv-plus {{$balance < 0 ? 'btn-danger' : ($balance > 0 ? 'btn-primary' : 'btn-success')}}"
@@ -121,10 +124,10 @@
                             <i class="mdi mdi-plus"></i>
                         </button>
                     </td>
-                    <td class="balance-cell">{{$balance}}</td>
+                    <td class="balance-cell cell-strong">{{$balance}}</td>
                     <td>{{$line->crm_qty}}</td>
                     <td>{{$line->brand}}</td>
-                    <td><strong>{{$line->location}}</strong></td>
+                    <td class="cell-strong">{{$line->location}}</td>
                 </tr>
                 <tr class="collapse" id="logs{{$line->id}}">
                     <td colspan="10" class="bg-light">
@@ -177,7 +180,7 @@
     <div class="card"><div class="card-body">
         <h4 class="text-secondary">Extra Parts (received but not in the list)</h4>
         <div class="table-responsive">
-        <table class="table table-bordered">
+        <table class="table table-bordered" id="extraTable">
             <thead>
                 <tr><th>#</th><th>CtnNo</th><th>PartNo</th><th>Description</th><th>Received</th><th>Brand</th><th>Location</th><th>Source</th><th>Note</th></tr>
             </thead>
