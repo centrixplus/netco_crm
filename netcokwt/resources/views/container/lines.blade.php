@@ -66,7 +66,11 @@
 <div class="col-md-12">
     <div class="card"><div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-            <h4 class="text-secondary mb-0">Lines</h4>
+            <div class="d-flex align-items-center gap-2">
+                <h4 class="text-secondary mb-0">Lines</h4>
+                <button type="button" id="balanceFilterBtn" class="btn btn-outline-primary btn-sm">Balance &gt; 0</button>
+                <button type="button" id="balanceClearBtn" class="btn btn-outline-secondary btn-sm d-none">Remove filter</button>
+            </div>
             <div class="position-relative" style="max-width:280px;">
                 <input type="text" id="partSearch" class="form-control" placeholder="Search by Product No...">
             </div>
@@ -435,15 +439,33 @@ $(document).on('click', '.logDelete', function(){
     });
 });
 
-$('#partSearch').on('keyup', function(){
-    var v = $(this).val().toLowerCase();
+var balanceFilterOn = false;
+function applyFilters(){
+    var v = $('#partSearch').val().toLowerCase();
     $('#lineTable tbody tr.line-row').each(function(){
-        var match = $(this).find('.part-cell').text().toLowerCase().indexOf(v) > -1;
-        $(this).toggle(match);
+        var $row = $(this);
+        var matchText = $row.find('.part-cell').text().toLowerCase().indexOf(v) > -1;
+        var bal = parseFloat($row.find('.balance-cell').text()) || 0;
+        var matchBal = !balanceFilterOn || bal > 0;   // filter on => keep only balance > 0
+        var show = matchText && matchBal;
+        $row.toggle(show);
         // keep each line's collapsible detail row in sync with its line row
-        var detail = $(this).next('tr.collapse');
-        if(detail.length){ detail.toggle(match && detail.hasClass('show')); }
+        var detail = $row.next('tr.collapse');
+        if(detail.length){ detail.toggle(show && detail.hasClass('show')); }
     });
+}
+$('#partSearch').on('keyup', applyFilters);
+$('#balanceFilterBtn').on('click', function(){
+    balanceFilterOn = true;
+    $(this).addClass('d-none');
+    $('#balanceClearBtn').removeClass('d-none');
+    applyFilters();
+});
+$('#balanceClearBtn').on('click', function(){
+    balanceFilterOn = false;
+    $(this).addClass('d-none');
+    $('#balanceFilterBtn').removeClass('d-none');
+    applyFilters();
 });
 
 // --- Received "+" button: open popup, fill summary, relocate entries ---
