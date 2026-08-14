@@ -78,6 +78,7 @@
                         <tr>
                             <th>S.No</th>
                             <th>Container No</th>
+                            <th>Code</th>
                             <th>Vendor</th>
                             <th>Mode</th>
                             <th>Received Date</th>
@@ -97,6 +98,7 @@
                         <tr>
                             <td>{{$x++}}</td>
                             <td>{{$index->container_no}}</td>
+                            <td>{{$index->container_code}}</td>
                             <td>{{optional($index->vendor)->name}}</td>
                             <td>{{$index->mode_of_shipment}}</td>
                             <td>{{ $index->received_date ? date('d-m-Y', strtotime($index->received_date)) : '-' }}</td>

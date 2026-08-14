@@ -42,7 +42,7 @@
                     <p class="text-muted mb-0">
                         <i class="bx bx-buildings me-1"></i>{{optional($container->vendor)->name}}
                         <span class="mx-2">&middot;</span>
-                        <i class="bx bxs-box me-1"></i>Container #{{$container->container_no}}
+                        <i class="bx bxs-box me-1"></i>Container #{{$container->container_no}} @if($container->container_code)<span class="badge bg-dark">{{$container->container_code}}</span>@endif
                     </p>
                 </div>
                 <div class="text-end">

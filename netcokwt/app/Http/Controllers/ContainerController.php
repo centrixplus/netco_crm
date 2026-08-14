@@ -94,6 +94,20 @@ class ContainerController extends Controller
         return $this->streamCsv('container_lines_format.csv',$headers,$sample);
     }
 
+    /**
+     * Generate the next container code: G + 2-digit year + '-' + 5-digit running
+     * number that resets every year (e.g. G26-00001). Based on the highest
+     * existing code for the current year, so it survives deletes and manual edits.
+     */
+    private function nextContainerCode()
+    {
+        $prefix = 'G'.date('y').'-';
+        $max = Container::where('container_code','like',$prefix.'%')
+                ->selectRaw('MAX(CAST(SUBSTRING(container_code,5) AS UNSIGNED)) as m')
+                ->value('m');
+        return $prefix.str_pad(((int)$max)+1, 5, '0', STR_PAD_LEFT);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -152,6 +166,7 @@ class ContainerController extends Controller
             $container->status           = 'New';
             $container->created_by       = $uid;
             $container->updated_by       = $uid;
+            $container->container_code   = $this->nextContainerCode();
             $container->save();
 
             // Initial status log entry.

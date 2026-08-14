@@ -34,7 +34,7 @@
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-start border-bottom pb-3 mb-3">
                 <div>
-                    <h4 class="mb-1">Container <span class="text-primary">#{{$container->container_no}}</span></h4>
+                    <h4 class="mb-1">Container <span class="text-primary">#{{$container->container_no}}</span> @if($container->container_code)<span class="badge bg-dark align-middle">{{$container->container_code}}</span>@endif</h4>
                     <p class="text-muted mb-0"><i class="bx bx-buildings me-1"></i>{{optional($container->vendor)->name}}</p>
                 </div>
                 <div class="text-end">

@@ -86,6 +86,7 @@
                         <tr>
                             <th>S.No</th>
                             <th>Container No</th>
+                            <th>Code</th>
                             <th>Vendor</th>
                             <th>Box (CtnNo)</th>
                             <th>Part No</th>
@@ -105,6 +106,7 @@
                         <tr class="{{$index->received_qty > $index->quantity ? 'table-danger' : ''}}">
                             <td>{{$x++}}</td>
                             <td>{{optional($index->container)->container_no}}</td>
+                            <td>{{optional($index->container)->container_code}}</td>
                             <td>{{optional(optional($index->container)->vendor)->name}}</td>
                             <td>{{$index->box_no}}</td>
                             <td>{{$index->part_no}}</td>

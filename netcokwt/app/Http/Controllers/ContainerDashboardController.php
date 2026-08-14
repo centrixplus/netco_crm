@@ -89,6 +89,7 @@ class ContainerDashboardController extends Controller
                 $nonCompleted[] = [
                     'id'          => $c->id,
                     'container_no'=> $c->container_no,
+                    'container_code'=> $c->container_code,
                     'vendor'      => optional($c->vendor)->name,
                     'status'      => $s,
                     'ordered'     => (int)$ordered,

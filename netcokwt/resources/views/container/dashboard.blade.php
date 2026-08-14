@@ -90,7 +90,7 @@
         <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
         <table class="table table-bordered mb-0">
             <thead style="position:sticky;top:0;background:#eef2f7;z-index:2;">
-                <tr><th>#</th><th>Container No</th><th>Vendor</th><th>Status</th><th>Ordered</th><th>Received</th><th>Pending</th><th>Completion</th><th>Action</th></tr>
+                <tr><th>#</th><th>Container No</th><th>Code</th><th>Vendor</th><th>Status</th><th>Ordered</th><th>Received</th><th>Pending</th><th>Completion</th><th>Action</th></tr>
             </thead>
             <tbody>
                 <?php $x=1; ?>
@@ -98,6 +98,7 @@
                 <tr>
                     <td>{{$x++}}</td>
                     <td>{{$nc['container_no']}}</td>
+                    <td>{{$nc['container_code']}}</td>
                     <td>{{$nc['vendor']}}</td>
                     <td><span class="badge bg-{{ ['New'=>'danger','In Progress'=>'warning','Completed'=>'success'][$nc['status']] ?? 'secondary' }}">{{$nc['status']}}</span></td>
                     <td>{{$nc['ordered']}}</td>
@@ -110,7 +111,7 @@
                     <td><a href="{{url('/container')}}/{{$nc['id']}}/cartons" class="btn btn-outline-primary btn-sm"><i class="mdi mdi-eye"></i> Open</a></td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="text-center text-success">All containers are fully completed 🎉</td></tr>
+                <tr><td colspan="10" class="text-center text-success">All containers are fully completed 🎉</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -126,11 +127,12 @@
             <h5 class="text-secondary">Recent Receiving Activity</h5>
             <div class="table-responsive">
             <table class="table table-sm table-bordered mb-0">
-                <thead><tr><th>Container</th><th>Box</th><th>Part</th><th>Qty</th><th>By</th><th>At</th></tr></thead>
+                <thead><tr><th>Container</th><th>Code</th><th>Box</th><th>Part</th><th>Qty</th><th>By</th><th>At</th></tr></thead>
                 <tbody>
                     @forelse($recentReceipts as $r)
                     <tr>
                         <td>{{optional($r->container)->container_no}}</td>
+                        <td>{{optional($r->container)->container_code}}</td>
                         <td>{{$r->box_no}}</td>
                         <td>{{$r->part_no}}</td>
                         <td>{{$r->received_qty}}</td>
@@ -138,7 +140,7 @@
                         <td>{{ date('d-m-Y H:i', strtotime($r->created_at)) }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center text-muted">No receiving activity.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">No receiving activity.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -150,11 +152,12 @@
             <h5 class="text-secondary">Recent Uploads</h5>
             <div class="table-responsive">
             <table class="table table-sm table-bordered mb-0">
-                <thead><tr><th>Container</th><th>Type</th><th>File</th><th>Matched</th><th>Unmatched</th><th>By</th><th>At</th></tr></thead>
+                <thead><tr><th>Container</th><th>Code</th><th>Type</th><th>File</th><th>Matched</th><th>Unmatched</th><th>By</th><th>At</th></tr></thead>
                 <tbody>
                     @forelse($recentUploads as $u)
                     <tr>
                         <td>{{optional($u->container)->container_no}}</td>
+                        <td>{{optional($u->container)->container_code}}</td>
                         <td>@if($u->type=='crm')<span class="badge bg-warning">CRM</span>@else<span class="badge bg-primary">Received</span>@endif</td>
                         <td>{{$u->file_name}}</td>
                         <td>{{$u->matched}}</td>
@@ -163,7 +166,7 @@
                         <td>{{ date('d-m-Y H:i', strtotime($u->created_at)) }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted">No uploads.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">No uploads.</td></tr>
                     @endforelse
                 </tbody>
             </table>

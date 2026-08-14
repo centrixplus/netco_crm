@@ -89,6 +89,7 @@
                     <tr>
                         <th>#</th>
                         <th>Container No</th>
+                        <th>Code</th>
                         <th>Vendor</th>
                         <th>Vendor Doc No</th>
                         <th>Mode</th>
@@ -106,6 +107,7 @@
                     <tr>
                         <td>{{$x++}}</td>
                         <td>{{$index->container_no}}</td>
+                        <td>{{$index->container_code}}</td>
                         <td>{{optional($index->vendor)->name}}</td>
                         <td>{{$index->vendor_doc_no}}</td>
                         <td>{{$index->mode_of_shipment}}</td>

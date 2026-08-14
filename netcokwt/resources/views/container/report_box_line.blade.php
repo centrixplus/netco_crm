@@ -89,6 +89,7 @@
                         <tr>
                             <th>S.No</th>
                             <th>Container No</th>
+                            <th>Code</th>
                             <th>Vendor</th>
                             <th>Received Date</th>
                             <th>Mode</th>
@@ -111,6 +112,7 @@
                         <tr class="{{$line->received_qty > $line->quantity ? 'table-danger' : ''}}">
                             <td>{{ $indexes->firstItem() + $loop->index }}</td>
                             <td>{{optional($line->container)->container_no}}</td>
+                            <td>{{optional($line->container)->container_code}}</td>
                             <td>{{optional(optional($line->container)->vendor)->name}}</td>
                             <td>{{ optional($line->container)->received_date ? date('d-m-Y', strtotime($line->container->received_date)) : '-' }}</td>
                             <td>{{optional($line->container)->mode_of_shipment}}</td>
@@ -127,7 +129,7 @@
                             <td>{{ $line->receiptlogs->pluck('remarks')->filter()->implode('; ') }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="16" class="text-center text-muted">No records found for the selected filters.</td></tr>
+                        <tr><td colspan="17" class="text-center text-muted">No records found for the selected filters.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
