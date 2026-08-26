@@ -566,20 +566,20 @@ tr.selected {background-color:#adf7a9  ! important;}
                         <td>@if(!empty($index->category)){{$index->category->name}}@endif</td>
                         <td>@if(!empty($index->subcategory)){{$index->subcategory->name}}@endif</td>
                         <td>{{$index->name}}</td>
-                        <td>{{App\Models\Product::FindName($index->reference_id)}}</td>
+                        <td>{{ optional($index->reference)->name }}</td>
                         <td>{{$index->cost}}</td>
                         <td>{{$index->min_price}}</td>
                         <td>{{$index->price}}</td>
                         <td>{{$index->dealer_price}}</td>
                         <td>{{$index->note}}</td>
-                        <td>{{$index->poline->count()}}</td>
+                        <td>{{$index->poline_count}}</td>
                         <td>
                             <a href="#" data-id="{{$index->id}}" data-brand_id="{{$index->brand_id}}" data-name="{{$index->name}}" data-uom_id="{{$index->uom_id}}" data-price="{{$index->price}}" data-min_price="{{$index->min_price}}" data-cost="{{$index->cost}}" data-group_id="{{$index->group_id}}" data-category_id="{{$index->category_id}}" data-subcategory_id="{{$index->subcategory_id}}" data-size_id="{{$index->size_id}}" data-color_id="{{$index->color_id}}" data-item_code_invoice="{{$index->item_code_invoice}}" data-product_id="{{$index->product_id}}" data-vendor_item_code="{{$index->vendor_item_code}}" data-hrm_code="{{$index->hrm_code}}" data-po_qty_limit="{{$index->po_qty_limit}}" data-packagetype_id="{{$index->packagetype_id}}" data-package_qty="{{$index->package_qty}}" data-is_tax="{{$index->is_tax}}" data-sale_type="{{$index->sale_type}}" data-note="{{$index->note}}" data-note_ar="{{$index->note_ar}}" class="btn btn-outline-secondary waves-effect waves-light btn-sm font-size-18 editbtn"><i class="mdi mdi-pencil"></i></a>
 
                             <a href="{{url('/products')}}/{{$index->id}}/show" class="btn btn-outline-info waves-effect waves-light btn-sm font-size-18"><i class="mdi mdi-eye"></i></a>
 
                             <button data-id="{{$index->id}}" data-brand_id="{{$index->brand_id}}" data-name="{{$index->name}}" type="button" class="btn btn-outline-warning waves-effect waves-light btn-sm font-size-18 uptbtn" data-bs-toggle="modal" data-bs-target="#myModal3"><i class="bx bx-upload ms-1"></i></button>
-                            @if($index->poline->count()==0)
+                            @if($index->poline_count==0)
                                 <a onclick="return confirm('Are you sure?')" href="{{url('/products')}}/{{$index->id}}/delete" class="btn btn-outline-danger waves-effect waves-light btn-sm font-size-18"><i class="mdi mdi-trash-can-outline"></i></a>
                             @endif
                         </td>

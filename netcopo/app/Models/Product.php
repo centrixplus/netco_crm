@@ -74,6 +74,11 @@ class Product extends Model
         return $this->belongsTo(Subcategory::class);
     }
 
+    // Self-reference: "LATEST PART NO" points to another product via reference_id.
+    public function reference(){
+        return $this->belongsTo(Product::class, 'reference_id');
+    }
+
     public function getPriceAttribute($value)
     {
        return $this->attributes['price'] = number_format( $value, 3, '.', '' );

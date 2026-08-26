@@ -39,7 +39,9 @@ class ProductsController extends Controller
     {
 
         $title = "Parts";
-        $products = Product::where('delete_status','0');
+        $products = Product::with(['brand:id,name','category:id,name','subcategory:id,name','reference:id,name'])
+            ->withCount('poline')
+            ->where('delete_status','0');
         $brands=Brand::where('delete_status','0')->orderBy('name','Asc')->get();
         $categories=Category::where('delete_status','0')->orderBy('name','Asc')->get();
         $subcategories=Subcategory::where('delete_status','0')->orderBy('name','Asc')->get();
@@ -53,7 +55,9 @@ class ProductsController extends Controller
 
             $brand=Brand::find($request->brand_search);
             $product=$brand->name.$request->product_search;
-            $products=Product::where('name',$product)->get();
+            $products=Product::with(['brand:id,name','category:id,name','subcategory:id,name','reference:id,name'])
+                ->withCount('poline')
+                ->where('name',$product)->get();
         }
         else{
             $products=$products->orderBy('id','Desc')->get();
