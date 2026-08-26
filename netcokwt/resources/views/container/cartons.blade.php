@@ -8,6 +8,10 @@
 .box-scroll{max-height:600px;overflow-y:auto;}
 .box-scroll table thead th{position:sticky;top:0;z-index:2;background:#eef2f7;}
 .table-bordered th, .table-bordered td{border:1px solid #6c757d !important;}
+#boxTable th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+#boxTable th.sortable::after{content:"\2195";opacity:.4;margin-left:4px;font-size:11px;}
+#boxTable th.sort-asc::after{content:"\2191";opacity:1;}
+#boxTable th.sort-desc::after{content:"\2193";opacity:1;}
 </style>
 <div class="row">
 <div class="col-12">
@@ -145,6 +149,41 @@
     <div class="card">
         <div class="card-body">
             <h4 class="text-secondary mb-3">Boxes (CtnNo)</h4>
+            @php
+                $totalBoxes = $boxes->count(); $completedBoxes = 0; $inProgressBoxes = 0; $pendingBoxes = 0;
+                foreach($boxes as $sb){
+                    $sp = $sb->total_qty > 0 ? $sb->capped_received / $sb->total_qty * 100 : 0;
+                    if($sp >= 100){ $completedBoxes++; }
+                    elseif(($sb->capped_received ?? 0) > 0){ $inProgressBoxes++; }
+                    else { $pendingBoxes++; }
+                }
+            @endphp
+            <div class="row g-2 mb-3">
+                <div class="col-md-3 col-6">
+                    <div class="border rounded p-2 text-center bg-light">
+                        <div class="text-muted small text-uppercase">Total Boxes</div>
+                        <div class="fs-4 fw-bold">{{$totalBoxes}}</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="border rounded p-2 text-center bg-light">
+                        <div class="text-muted small text-uppercase">Completed</div>
+                        <div class="fs-4 fw-bold text-success">{{$completedBoxes}} <span class="fs-6">({{ $totalBoxes>0 ? round($completedBoxes/$totalBoxes*100,1) : 0 }}%)</span></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="border rounded p-2 text-center bg-light">
+                        <div class="text-muted small text-uppercase">In Progress</div>
+                        <div class="fs-4 fw-bold text-warning">{{$inProgressBoxes}} <span class="fs-6">({{ $totalBoxes>0 ? round($inProgressBoxes/$totalBoxes*100,1) : 0 }}%)</span></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="border rounded p-2 text-center bg-light">
+                        <div class="text-muted small text-uppercase">Pending</div>
+                        <div class="fs-4 fw-bold text-danger">{{$pendingBoxes}} <span class="fs-6">({{ $totalBoxes>0 ? round($pendingBoxes/$totalBoxes*100,1) : 0 }}%)</span></div>
+                    </div>
+                </div>
+            </div>
             <form action="{{url('/container')}}/{{$container->id}}/cartons" method="get" class="row g-2 mb-3">
                 <div class="col-lg-3">
                     <input type="text" name="box_no" value="{{$box_no}}" class="form-control form-control-sm" placeholder="Search by Box No (CtnNo)">
@@ -166,11 +205,11 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>CtnNo (Box)</th>
-                        <th>Lines</th>
-                        <th>Total Qty</th>
-                        <th>Total Received</th>
-                        <th>Completion</th>
+                        <th class="sortable" data-type="text">CtnNo (Box)</th>
+                        <th class="sortable" data-type="num">Lines</th>
+                        <th class="sortable" data-type="num">Total Qty</th>
+                        <th class="sortable" data-type="num">Total Received</th>
+                        <th class="sortable" data-type="num">Completion</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -276,3 +315,28 @@
 </div>
 </div>
 @endsection
+@section('ScriptContent')
+<script>
+$(function(){
+    $('#boxTable thead th.sortable').on('click', function(){
+        var $th = $(this), idx = $th.index(), type = $th.data('type') || 'text';
+        var asc = !$th.hasClass('sort-asc');
+        $('#boxTable thead th').removeClass('sort-asc sort-desc');
+        $th.addClass(asc ? 'sort-asc' : 'sort-desc');
+        var $tb = $('#boxTable tbody');
+        var rows = $tb.find('tr').get().filter(function(r){ return $(r).children('td').length > 1; });
+        rows.sort(function(a,b){
+            var av = $(a).children('td').eq(idx).text().trim();
+            var bv = $(b).children('td').eq(idx).text().trim();
+            if(type === 'num'){
+                av = parseFloat(av.replace(/[^0-9.\-]/g,'')) || 0;
+                bv = parseFloat(bv.replace(/[^0-9.\-]/g,'')) || 0;
+                return asc ? av - bv : bv - av;
+            }
+            return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+        $.each(rows, function(i,r){ $tb.append(r); $(r).children('td').eq(0).text(i+1); });
+    });
+});
+</script>
+@stop
