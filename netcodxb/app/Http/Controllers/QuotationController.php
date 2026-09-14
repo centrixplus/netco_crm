@@ -61,6 +61,7 @@ class QuotationController extends Controller
     {
         $title="Quotation";
         $quote=Enquiry::find($id);
+        if(!$quote){ return redirect('/quotelist')->with('alert','Quote not found.'); }
         $quotelines=$quote->enquirylines;
         $setting=Setting::find('1');
         return view('enquiry.quote',compact('quotelines','quote','setting','title'));

@@ -90,7 +90,7 @@ tr.selected {background-color:#adf7a9  ! important;}
 
                         <div class="col-lg-8 mt-3">
                             <button type="submit" class="btn btn-primary waves-effect waves-light me-2 mt-2">Search</button>
-                            <a href="{{url('/quote/list')}}" class="btn btn-outline-warning waves-effect waves-light me-2 mt-2">Clear Filter</a>
+                            <a href="{{url('/quotelist')}}" class="btn btn-outline-warning waves-effect waves-light me-2 mt-2">Clear Filter</a>
                         </div>
                     </div>
                 </form>
