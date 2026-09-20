@@ -67,6 +67,18 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Code</label>
+                            <input class="form-control" type="text" name="container_code" value="{{$container_code}}" placeholder="Code">
+                        </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Vendor Doc No</label>
+                            <input class="form-control" type="text" name="vendor_doc_no" value="{{$vendor_doc_no}}" placeholder="Vendor Doc No">
+                        </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Shipment Doc No</label>
+                            <input class="form-control" type="text" name="shipment_doc_no" value="{{$shipment_doc_no}}" placeholder="Shipment Doc No">
+                        </div>
                         <div class="col-lg-3 mt-3 align-self-end">
                             <button type="submit" class="btn btn-primary waves-effect waves-light me-2 mt-2">Search</button>
                             <button type="button" class="btn btn-outline-info waves-effect waves-light mt-2">Count - {{$indexes->count()}}</button>

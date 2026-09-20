@@ -64,6 +64,27 @@
                             <label>Part No</label>
                             <input class="form-control" type="text" name="part_no" value="{{$part_no}}" placeholder="Part No">
                         </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Code</label>
+                            <input class="form-control" type="text" name="container_code" value="{{$container_code}}" placeholder="Code">
+                        </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Vendor Doc No</label>
+                            <input class="form-control" type="text" name="vendor_doc_no" value="{{$vendor_doc_no}}" placeholder="Vendor Doc No">
+                        </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Shipment Doc No</label>
+                            <input class="form-control" type="text" name="shipment_doc_no" value="{{$shipment_doc_no}}" placeholder="Shipment Doc No">
+                        </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Tag</label>
+                            <select class="form-control select2" name="tag_id">
+                                <option value="">All Tags</option>
+                                @foreach($tags as $t)
+                                    <option value="{{$t->id}}" {{$tag_id==$t->id?'selected':''}}>{{$t->name}}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-lg-3 mt-3 align-self-end">
                             <button type="submit" class="btn btn-primary waves-effect waves-light me-2 mt-2">Search</button>
                             <a href="{{ route('containerboxlineexport', request()->query()) }}" class="btn btn-success waves-effect waves-light mt-2"><i class="mdi mdi-download"></i> Export</a>

@@ -58,6 +58,18 @@ class ContainerController extends Controller
             $tag_id = $request->tag_id;
             $indexes = $indexes->whereRaw('FIND_IN_SET(?, tags)', [$tag_id]);
         }
+        $container_code = $request->container_code ?: '';
+        if(!empty($container_code)){
+            $indexes = $indexes->where('container_code','like','%'.$container_code.'%');
+        }
+        $vendor_doc_no = $request->vendor_doc_no ?: '';
+        if(!empty($vendor_doc_no)){
+            $indexes = $indexes->where('vendor_doc_no','like','%'.$vendor_doc_no.'%');
+        }
+        $shipment_doc_no = $request->shipment_doc_no ?: '';
+        if(!empty($shipment_doc_no)){
+            $indexes = $indexes->where('shipment_doc_no','like','%'.$shipment_doc_no.'%');
+        }
         $indexes = $indexes->orderBy('id','Desc')->get();
 
         // Completion % per container (Method 3 - capped: SUM(LEAST(received,ordered)) / SUM(ordered)).
@@ -67,7 +79,7 @@ class ContainerController extends Controller
             ->groupBy('container_id')->get()->keyBy('container_id');
 
         return view('container.index',
-            compact('title','indexes','fromdate','todate','vendors','vendor_id','tags','tag_id','mode','stats'));
+            compact('title','indexes','fromdate','todate','vendors','vendor_id','tags','tag_id','mode','stats','container_code','vendor_doc_no','shipment_doc_no'));
     }
 
     public function create()
@@ -864,6 +876,11 @@ class ContainerController extends Controller
         $container_id = $request->container_id ?: '';
         $box_no       = $request->box_no ?: '';
         $part_no      = $request->part_no ?: '';
+        $container_code  = $request->container_code ?: '';
+        $vendor_doc_no   = $request->vendor_doc_no ?: '';
+        $shipment_doc_no = $request->shipment_doc_no ?: '';
+        $tags = Tag::where('delete_status','0')->orderBy('name','asc')->get();
+        $tag_id = $request->tag_id ?: '';
 
         $indexes = ContainerReceiptLog::with(['container.vendor','creator'])
             ->whereBetween('created_at',[$fromdate, $todate1]);
@@ -873,10 +890,20 @@ class ContainerController extends Controller
         if(!empty($container_id)){ $indexes->where('container_id',$container_id); }
         if(!empty($box_no)){ $indexes->where('box_no','like','%'.$box_no.'%'); }
         if(!empty($part_no)){ $indexes->where('part_no','like','%'.$part_no.'%'); }
+        if(!empty($container_code) || !empty($vendor_doc_no) || !empty($shipment_doc_no)){
+            $indexes->whereHas('container', function($q) use($container_code,$vendor_doc_no,$shipment_doc_no){
+                if(!empty($container_code)){ $q->where('container_code','like','%'.$container_code.'%'); }
+                if(!empty($vendor_doc_no)){ $q->where('vendor_doc_no','like','%'.$vendor_doc_no.'%'); }
+                if(!empty($shipment_doc_no)){ $q->where('shipment_doc_no','like','%'.$shipment_doc_no.'%'); }
+            });
+        }
+        if(!empty($tag_id)){
+            $indexes->whereHas('container', function($q) use($tag_id){ $q->whereRaw('FIND_IN_SET(?, tags)', [$tag_id]); });
+        }
         $indexes = $indexes->orderBy('id','Desc')->get();
 
         return view('container.report_received',
-            compact('title','indexes','fromdate','todate','vendors','vendor_id','containers','container_id','box_no','part_no'));
+            compact('title','indexes','fromdate','todate','vendors','vendor_id','containers','container_id','box_no','part_no','container_code','vendor_doc_no','shipment_doc_no','tags','tag_id'));
     }
 
     // Extra parts report (received but not in the container list).
@@ -897,6 +924,11 @@ class ContainerController extends Controller
         $box_no       = $request->box_no ?: '';
         $part_no      = $request->part_no ?: '';
         $brand        = $request->brand ?: '';
+        $container_code  = $request->container_code ?: '';
+        $vendor_doc_no   = $request->vendor_doc_no ?: '';
+        $shipment_doc_no = $request->shipment_doc_no ?: '';
+        $tags = Tag::where('delete_status','0')->orderBy('name','asc')->get();
+        $tag_id = $request->tag_id ?: '';
 
         $indexes = ContainerExtraLine::with(['container.vendor','creator'])
             ->whereBetween('created_at',[$fromdate, $todate1]);
@@ -907,10 +939,20 @@ class ContainerController extends Controller
         if(!empty($box_no)){ $indexes->where('box_no','like','%'.$box_no.'%'); }
         if(!empty($part_no)){ $indexes->where('part_no','like','%'.$part_no.'%'); }
         if(!empty($brand)){ $indexes->where('brand','like','%'.$brand.'%'); }
+        if(!empty($container_code) || !empty($vendor_doc_no) || !empty($shipment_doc_no)){
+            $indexes->whereHas('container', function($q) use($container_code,$vendor_doc_no,$shipment_doc_no){
+                if(!empty($container_code)){ $q->where('container_code','like','%'.$container_code.'%'); }
+                if(!empty($vendor_doc_no)){ $q->where('vendor_doc_no','like','%'.$vendor_doc_no.'%'); }
+                if(!empty($shipment_doc_no)){ $q->where('shipment_doc_no','like','%'.$shipment_doc_no.'%'); }
+            });
+        }
+        if(!empty($tag_id)){
+            $indexes->whereHas('container', function($q) use($tag_id){ $q->whereRaw('FIND_IN_SET(?, tags)', [$tag_id]); });
+        }
         $indexes = $indexes->orderBy('id','Desc')->get();
 
         return view('container.report_extra',
-            compact('title','indexes','fromdate','todate','vendors','vendor_id','containers','container_id','box_no','part_no','brand'));
+            compact('title','indexes','fromdate','todate','vendors','vendor_id','containers','container_id','box_no','part_no','brand','container_code','vendor_doc_no','shipment_doc_no','tags','tag_id'));
     }
 
     // Line-level report (Container + Box + Line) with server-side pagination.
@@ -920,6 +962,7 @@ class ContainerController extends Controller
         $f = $this->boxLineFilters($request);
         $vendors = Vendor::where('delete_status','0')->orderBy('name','asc')->get();
         $containers = Container::where('delete_status','0')->orderBy('id','Desc')->get();
+        $tags = Tag::where('delete_status','0')->orderBy('name','asc')->get();
 
         $indexes = $this->boxLineQuery($f)
             ->orderBy('container_id','Desc')->orderBy('box_no','asc')->orderBy('part_no','asc')
@@ -927,7 +970,7 @@ class ContainerController extends Controller
 
         return view('container.report_box_line', array_merge($f, [
             'title' => $title, 'indexes' => $indexes,
-            'vendors' => $vendors, 'containers' => $containers,
+            'vendors' => $vendors, 'containers' => $containers, 'tags' => $tags,
         ]));
     }
 
@@ -972,6 +1015,10 @@ class ContainerController extends Controller
             'mode'         => $request->mode_of_shipment ?: '',
             'box_no'       => $request->box_no ?: '',
             'part_no'      => $request->part_no ?: '',
+            'container_code'  => $request->container_code ?: '',
+            'vendor_doc_no'   => $request->vendor_doc_no ?: '',
+            'shipment_doc_no' => $request->shipment_doc_no ?: '',
+            'tag_id'          => $request->tag_id ?: '',
         ];
     }
 
@@ -983,6 +1030,10 @@ class ContainerController extends Controller
                 $c->where('delete_status','0')->whereBetween('received_date',[$f['fromdate'], $f['todate']]);
                 if(!empty($f['vendor_id'])){ $c->where('vendor_id',$f['vendor_id']); }
                 if(!empty($f['mode'])){ $c->where('mode_of_shipment',$f['mode']); }
+                if(!empty($f['container_code'])){ $c->where('container_code','like','%'.$f['container_code'].'%'); }
+                if(!empty($f['vendor_doc_no'])){ $c->where('vendor_doc_no','like','%'.$f['vendor_doc_no'].'%'); }
+                if(!empty($f['shipment_doc_no'])){ $c->where('shipment_doc_no','like','%'.$f['shipment_doc_no'].'%'); }
+                if(!empty($f['tag_id'])){ $c->whereRaw('FIND_IN_SET(?, tags)', [$f['tag_id']]); }
             });
         if(!empty($f['container_id'])){ $q->where('container_id',$f['container_id']); }
         if(!empty($f['box_no'])){ $q->where('box_no','like','%'.$f['box_no'].'%'); }
