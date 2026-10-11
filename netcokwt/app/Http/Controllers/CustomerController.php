@@ -39,8 +39,12 @@ class CustomerController extends Controller
     {
         
         if(!empty($request->editid)){
+            $request->validate([
+                'name' => 'required',
+                'code' => 'required|unique:customers,code,'.$request->editid,
+            ]);
             $data = Customer::find($request->editid);
-            if (empty($data)) { $data = new Customer; }
+            if (empty($data)) { return redirect('/customer')->with('error','Customer not found.'); }
             $data->name = strtoupper($request->name);
             $data->mobile = $request->mobile;
             $data->code = $request->code;
@@ -56,8 +60,9 @@ class CustomerController extends Controller
         else{
             $validatedData = $request->validate([
                 'code' => 'required|unique:customers',
+                'name' => 'required',
             ]);
-            $data = new Customer; 
+            $data = new Customer;
             $data->name = strtoupper($request->name);
             $data->mobile = $request->mobile;
             $data->code = $request->code;

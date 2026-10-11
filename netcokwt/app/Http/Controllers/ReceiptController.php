@@ -158,6 +158,13 @@ class ReceiptController extends Controller
     public function store(Request $request)
     {
 
+        // Customer is mandatory for every new receipt (including CASH / paymenttype 1).
+        if(empty($request->editid)){
+            $request->validate([
+                'customer_id' => 'required',
+            ]);
+        }
+
         if(empty($request->editid) && $request->paymenttype_id!='1'){
             $validatedData = $request->validate([
                 'payment_reference_no' => 'required|unique:receipts',
