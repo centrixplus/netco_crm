@@ -96,6 +96,7 @@ tr.selected {background-color:#adf7a9  ! important;}
                         <div class="col-lg-5 mt-3">
                             <button type="submit" class="btn btn-primary waves-effect waves-light me-2 mt-2">Search</button>
                             <a href="{{ url('/report/quote/export') }}?{{ http_build_query(request()->query()) }}" class="btn btn-success waves-effect waves-light me-2 mt-2"><i class="mdi mdi-download"></i> Export CSV</a>
+                            <button type="button" class="btn btn-outline-info waves-effect waves-light mt-2">Count - {{ $indexes->total() }}</button>
                         </div>
                     </div>
                 </form>
