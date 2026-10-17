@@ -507,68 +507,106 @@ class ReportController extends Controller
         $customers = Customer::where('delete_status','0')->orderBy('name','asc')->get();
         $users = User::orderBy('name','asc')->get();
         $brands=Brand::where('delete_status','0')->orderBy('name','asc')->get();
-        $indexes = Quoteline::select([
-        'id','quote_id','product','quantity','price','description'
-    ])
-    ->with([
-        'quote:id,quote_no,customer_id,brand_id,user_id,price_level,currency_id,quote_date,note',
-        'quote.customer:id,name,code',
-        'quote.brand:id,name',
-        'quote.user:id,name',
-        'quote.currency:id,name',
-    ])
-    ->whereBetween('created_at', [$fromdate, $todate])
-    ->where('delete_status','0')
-    ->orderBy('id','desc');
-    
         $currencies = Currency::get();
-        $customer_id='';
+
+        $customer_id = $request->customer_id ?: '';
+        $brand_id    = $request->brand_id ?: '';
+        $user_id     = $request->user_id ?: '';
+        $currency_id = $request->currency ?: '';
+        $product_val = $request->product ?: '';
+        $search      = $request->search ?: '';
+
+        $indexes = $this->buildQuoteQuery($request)->paginate(100)->appends($request->query());
+
+        return view('report.quote',compact('title','indexes','fromdate','todate','customers','customer_id','brand_id','users','user_id','brands','currencies','currency_id','product_val','search'));
+    }
+
+    // Shared filtered Quoteline query used by both the report and the CSV export.
+    private function buildQuoteQuery(Request $request)
+    {
+        $fromdate = date('Y-m-d');
+        $todate = date('Y-m-d');
+        if (!empty($request->fromdate) && !empty($request->todate)){
+            $fromdate = $request->fromdate;
+            $todate = $request->todate;
+        }
+
+        $q = Quoteline::select(['id','quote_id','product','quantity','price','description'])
+            ->with([
+                'quote:id,quote_no,customer_id,brand_id,user_id,price_level,currency_id,quote_date,note',
+                'quote.customer:id,name,code',
+                'quote.brand:id,name',
+                'quote.user:id,name',
+                'quote.currency:id,name',
+            ])
+            ->whereBetween('created_at', [$fromdate, $todate])
+            ->where('delete_status','0');
+
         if(!empty($request->customer_id)){
-            $customer_id=$request->customer_id;
-            $indexes=$indexes->whereHas('quote', function($q) use ($request)
-            {
-                $q->where('customer_id',$request->customer_id);
-
-            });
+            $q->whereHas('quote', function($w) use ($request){ $w->where('customer_id',$request->customer_id); });
         }
-        $brand_id='';
         if(!empty($request->brand_id)){
-            $brand_id=$request->brand_id;
-            $indexes=$indexes->whereHas('quote', function($q) use ($request)
-            {
-                $q->where('brand_id',$request->brand_id);
-
-            });
+            $q->whereHas('quote', function($w) use ($request){ $w->where('brand_id',$request->brand_id); });
         }
-        $user_id='';
         if(!empty($request->user_id)){
-            $user_id=$request->user_id;
-            $indexes=$indexes->whereHas('quote', function($q) use ($request)
-            {
-                $q->where('created_by',$request->user_id);
-
-            });
+            $q->whereHas('quote', function($w) use ($request){ $w->where('created_by',$request->user_id); });
         }
-        $currency_id='';
         if(!empty($request->currency)){
-            $currency_id=$request->currency;
-            $indexes=$indexes->whereHas('quote', function($q) use ($request)
-            {
-                $q->where('currency_id',$request->currency);
-
+            $q->whereHas('quote', function($w) use ($request){ $w->where('currency_id',$request->currency); });
+        }
+        if(!empty($request->product)){
+            $q->where('product',$request->product);
+        }
+        if(!empty($request->search)){
+            $s = $request->search;
+            $q->where(function($w) use ($s){
+                $w->where('product','like','%'.$s.'%')
+                  ->orWhere('description','like','%'.$s.'%')
+                  ->orWhereHas('quote', function($qq) use ($s){
+                      $qq->where('quote_no','like','%'.$s.'%')
+                         ->orWhereHas('customer', function($c) use ($s){
+                             $c->where('name','like','%'.$s.'%')->orWhere('code','like','%'.$s.'%');
+                         });
+                  });
             });
         }
 
-        $product_val='';
-        if(!empty($request->product)){
-            $product_val=$request->product;
-            $indexes=$indexes->where('product',$product_val);
-        }
-        $indexes=$indexes->where('delete_status','0')->orderBy('id','Desc')->get();
+        return $q->orderBy('id','desc');
+    }
 
-        //print_r($indexes); exit();
+    // Stream the filtered quote report as CSV (respects all selected filters + search).
+    public function quotereportexport(Request $request)
+    {
+        $query = $this->buildQuoteQuery($request);
+        $filename = 'quote_report_'.date('Ymd_His').'.csv';
 
-        return view('report.quote',compact('title','indexes','fromdate','todate','customers','customer_id','brand_id','users','user_id','brands','currencies','currency_id','product_val'));  
+        return response()->streamDownload(function() use ($query){
+            $out = fopen('php://output','w');
+            fputcsv($out, ['S.No','Quote ID','Customer','Code','Date','Brand','User','Price Level','Currency','Note','Product','Quantity','Description','Price']);
+            $i = 1;
+            $query->chunk(2000, function($rows) use (&$i, $out){
+                foreach($rows as $index){
+                    $quote = $index->quote;
+                    fputcsv($out, [
+                        $i++,
+                        $quote ? $quote->quote_no : '',
+                        ($quote && $quote->customer) ? $quote->customer->name : '',
+                        ($quote && $quote->customer) ? $quote->customer->code : '',
+                        ($quote && $quote->quote_date) ? date('d-m-Y', strtotime($quote->quote_date)) : '',
+                        ($quote && $quote->brand) ? $quote->brand->name : '',
+                        ($quote && $quote->user) ? $quote->user->name : '',
+                        $quote ? $quote->price_level : '',
+                        ($quote && $quote->currency) ? $quote->currency->name : '',
+                        $quote ? $quote->note : '',
+                        $index->product,
+                        $index->quantity,
+                        $index->description,
+                        $index->price,
+                    ]);
+                }
+            });
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
 

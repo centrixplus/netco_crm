@@ -329,4 +329,5 @@ Route::get('/delete/quote/{id}', [QuoteController::class, 'delete'])->name('quot
 Route::post('/quoteupdate', [QuoteController::class, 'update'])->name('quoteupdate');
 Route::get('/report/quote', [ReportController::class, 'quotereport'])->name('reportquote');
 Route::post('report/quote', [ReportController::class, 'quotereport']);
+Route::get('/report/quote/export', [ReportController::class, 'quotereportexport'])->name('reportquoteexport');
 

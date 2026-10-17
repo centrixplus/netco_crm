@@ -29,8 +29,7 @@ tr.selected {background-color:#adf7a9  ! important;}
     <div class="col-md-12">
         <div class="card">
             <div class="card-body">
-                <form  action="{{url('/report/quote')}}" method="post" enctype="multipart/form-data">
-                    {{csrf_field()}}  
+                <form  action="{{url('/report/quote')}}" method="get">
                     <div class="row">
                         <div class="col-lg-2">
                             <div>
@@ -90,9 +89,13 @@ tr.selected {background-color:#adf7a9  ! important;}
                             <label>Enter Product: </label>
                             <input type="text" name="product" id="product" value="{{$product_val}}" class="form-control">
                         </div>
+                        <div class="col-lg-3 mt-3">
+                            <label>Search: </label>
+                            <input type="text" name="search" id="search" value="{{$search}}" class="form-control" placeholder="Quote No / Customer / Product / Description">
+                        </div>
                         <div class="col-lg-5 mt-3">
                             <button type="submit" class="btn btn-primary waves-effect waves-light me-2 mt-2">Search</button>
-                            
+                            <a href="{{ url('/report/quote/export') }}?{{ http_build_query(request()->query()) }}" class="btn btn-success waves-effect waves-light me-2 mt-2"><i class="mdi mdi-download"></i> Export CSV</a>
                         </div>
                     </div>
                 </form>
@@ -106,7 +109,8 @@ tr.selected {background-color:#adf7a9  ! important;}
     <div class="card">
         <div class="card-body">
             <h4 class="text-secondary">{{$title}}</h4>
-            <table id="datatable-buttons" class="table table-bordered table-responsive">
+            <div class="table-responsive">
+            <table class="table table-bordered">
                 <thead>
                     <tr>
                         <th>S.No</th>
@@ -126,10 +130,9 @@ tr.selected {background-color:#adf7a9  ! important;}
                     </tr>
                 </thead>           
                 <tbody>
-                    <?php $x=1; ?>
                     @foreach ($indexes as $index)
                     <tr>
-                            <td>{{$x++}}</td>
+                            <td>{{ $indexes->firstItem() + $loop->index }}</td>
                             <td>@if($index->quote->quote_no!='') {{$index->quote->quote_no}} @endif</td>
 
                             <td>@if($index->quote->customer){{$index->quote->customer->name}} @endif</td>
@@ -151,27 +154,16 @@ tr.selected {background-color:#adf7a9  ! important;}
                     @endforeach
                 </tbody>
             </table>
+            </div>
+            <div class="mt-3">
+                {{ $indexes->links('pagination::bootstrap-4') }}
+            </div>
         </div>
     </div>
 </div>
 </div>
 @endsection
 @section('ScriptContent')
-<script src="{{asset('/assets')}}/libs/datatables.net/js/jquery.dataTables.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-buttons-bs4/js/buttons.bootstrap4.min.js"></script>
-<script src="{{asset('/assets')}}/libs/jszip/jszip.min.js"></script>
-<script src="{{asset('/assets')}}/libs/pdfmake/build/pdfmake.min.js"></script>
-<script src="{{asset('/assets')}}/libs/pdfmake/build/vfs_fonts.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-buttons/js/buttons.html5.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-buttons/js/buttons.print.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-buttons/js/buttons.colVis.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
-<script src="{{asset('/assets')}}/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
 <script src="{{asset('/assets')}}/libs/select2/js/select2.min.js"></script>
 <script src="{{asset('/assets')}}/js/pages/form-advanced.init.js"></script>
-<script>
-$(document).ready(function(){$("#datatable").DataTable(),$("#datatable-buttons").DataTable({lengthChange:!1,buttons:["copy","excel","pdf"]}).buttons().container().appendTo("#datatable-buttons_wrapper .col-md-6:eq(0)"),$(".dataTables_length select").addClass("form-select form-select-sm")});
-</script>
 @stop
